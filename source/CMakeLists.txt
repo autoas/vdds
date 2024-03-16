@@ -2,7 +2,14 @@
 # Copyright (C) 2024 Parai Wang <parai@foxmail.com>
 
 set(VDDS_INCLUDE ${PROJECT_SOURCE_DIR}/include)
-set(VDDS_SOURCE vring.cpp Log.cpp)
+
+set(VDDS_SOURCE
+    Log.cpp
+    named_semaphore.cpp
+    shared_memory.cpp
+    vring.cpp
+)
+
 set(VDDS_LIBS)
 
 if ( CMAKE_SYSTEM_NAME MATCHES "MSYS" )
