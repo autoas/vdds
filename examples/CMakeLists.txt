@@ -6,3 +6,6 @@ target_link_libraries(VDDSHwPub PRIVATE VDDS)
 
 add_executable(VDDSHwSub hello_world_subscriber.cpp)
 target_link_libraries(VDDSHwSub PRIVATE VDDS)
+
+add_executable(VDDSHwPS hello_world_ps.cpp)
+target_link_libraries(VDDSHwPS PRIVATE VDDS)
