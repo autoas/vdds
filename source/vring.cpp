@@ -403,6 +403,7 @@ void VRingWriter::threadMain() {
 }
 
 VRingReader::VRingReader(std::string name, uint32_t numDesc) : VRingBase(name, numDesc) {
+  m_DmaMems.reserve(numDesc);
 }
 
 int VRingReader::init() {
@@ -470,6 +471,19 @@ int VRingReader::init() {
     }
   }
 
+  for (i = 0; (i < m_NumDesc) && (0 == ret); i++) {
+    std::string shmFile = m_Name + "_" + std::to_string(i) + "_" + std::to_string(m_Desc[i].len);
+    auto dmaMemory = std::make_shared<DmaMemory>(shmFile, m_Desc[i].handle, m_Desc[i].len);
+    if (nullptr != dmaMemory) {
+      ret = dmaMemory->create();
+      if (0 == ret) {
+        m_DmaMems.push_back(dmaMemory);
+      }
+    } else {
+      ret = ENOMEM;
+    }
+  }
+
   if (0 == ret) {
     ASLOG(VRINGI, ("vring reader %s@%u online: msgSize = %u,  numDesc = %u\n", m_Name.c_str(),
                    m_ReaderIdx, m_Meta->msgSize, m_NumDesc));
@@ -477,34 +491,6 @@ int VRingReader::init() {
   }
 
   return ret;
-}
-
-void *VRingReader::getVA(uint64_t handle, uint32_t size) {
-  int ret = 0;
-  void *addr = nullptr;
-
-  std::unique_lock<std::mutex> lck(m_Lock);
-  auto it = m_DmaMap.find(handle);
-  if (it == m_DmaMap.end()) {
-    std::string shmFile = m_Name + "_" + std::to_string(handle) + "_" + std::to_string(size);
-    auto dmaMemory = std::make_shared<DmaMemory>(shmFile, handle, size);
-    if (nullptr != dmaMemory) {
-      ret = dmaMemory->create();
-      if (0 == ret) {
-        addr = dmaMemory->getVA();
-        m_DmaMap[handle] = dmaMemory;
-      }
-    }
-  } else {
-    auto dmaMemory = it->second;
-    addr = dmaMemory->getVA();
-  }
-
-  if (nullptr == addr) {
-    ASLOG(VRINGE, ("vring reader %s can't getVA %" PRIu64 "\n", m_Name.c_str(), handle));
-  }
-
-  return addr;
 }
 
 VRingReader::~VRingReader() {
@@ -537,8 +523,7 @@ VRingReader::~VRingReader() {
   }
 
   m_SharedMemory = nullptr;
-  std::unique_lock<std::mutex> lck(m_Lock);
-  m_DmaMap.clear();
+  m_DmaMems.clear();
 
   m_SemAvail = nullptr;
   m_SemUsed = nullptr;
@@ -562,10 +547,7 @@ int VRingReader::get(void *&buf, uint32_t &idx, uint32_t &len, uint32_t timeoutM
     len = used->len;
     m_Used->lastIdx++;
 
-    buf = (void *)getVA(m_Desc[idx].handle, m_Desc[idx].len);
-    if (nullptr == buf) {
-      ret = EBADMSG;
-    }
+    buf = m_DmaMems[idx]->getVA();
 
     /* if the app crashed after this before call the put, then the desc is in detached state
      * that need the monitor to recycle it.

@@ -132,7 +132,6 @@ public:
   int drop(uint32_t idx);
 
 private:
-  void *getVA(uint64_t handle, uint32_t size);
   int setup();
   void releaseDesc(uint32_t idx);
   void removeAbnormalReader(VRing_UsedType *used, uint32_t readerIdx);
@@ -166,7 +165,6 @@ public:
   int put(uint32_t idx);
 
 private:
-  void *getVA(uint64_t handle, uint32_t size);
   void threadMain();
 
 private:
@@ -176,8 +174,7 @@ private:
   std::shared_ptr<NamedSemaphore> m_SemUsed = nullptr;
   std::shared_ptr<NamedSemaphore> m_SemAvail = nullptr;
 
-  std::mutex m_Lock;
-  std::map<uint64_t, std::shared_ptr<DmaMemory>> m_DmaMap;
+  std::vector<std::shared_ptr<DmaMemory>> m_DmaMems;
 };
 /* ================================ [ DECLARES  ] ============================================== */
 /* ================================ [ DATAS     ] ============================================== */
