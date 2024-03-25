@@ -70,6 +70,8 @@ need atomic.
 
 The more key important details of the AVAIL ring and USED ring as below picture shows:
 
+![virtio ring dds arch](doc/images/virtio-ring-buffer-arch.png)
+
 As the Figure 0 shows, when the Writer initialization is done and 2 Readers(USED ring) online, the ring of AVAIL is full and each points to a valid DESC(the shared memory descriptor). And the USED[0] and USED[1] ring are empty.
 
 When the user of the Writer call API "get", the DESC[0] as pointed by the lastIdx of AVAIL ring will be returned to the user and the lastIdx will be moved to point to the next RING[1], as Figure 1 shows.
