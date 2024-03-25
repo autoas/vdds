@@ -73,10 +73,13 @@ int VRingBase::spinLock(int32_t *pLock) {
   volatile uint64_t timeout = 0;
   /* NOTE: if the others do spinLock and then crashed, that's a diaster to the things left */
   while (__atomic_exchange_n(pLock, 1, __ATOMIC_ACQUIRE) && (0 == ret)) {
-    timeout++;
-    if (timeout > VRING_SPIN_MAX_COUNTER) {
-      ret = EDEADLK;
-      ASLOG(VRINGE, ("vring %s spin lock %p dead\n", m_Name.c_str(), pLock));
+    timeout = 0;
+    while (__atomic_load_n(pLock, __ATOMIC_RELAXED) && (0 == ret)) {
+      timeout++;
+      if (timeout > VRING_SPIN_MAX_COUNTER) {
+        ret = EDEADLK;
+        ASLOG(VRINGE, ("vring %s spin lock %p dead\n", m_Name.c_str(), pLock));
+      }
     }
   }
   return ret;
